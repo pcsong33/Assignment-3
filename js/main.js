@@ -11,7 +11,7 @@ d3.csv("data/wealth-health-2014.csv", function(data){
 
 	// Analyze the dataset in the web console
 	console.log(data);
-	console.log("Countries: " + data.length)
+	console.log("Countries: " + data.length);
 
 	var preparedData = prepareData(data);
 
@@ -23,14 +23,88 @@ var prepareData = function(data) {
 	// Use the web console to get a better idea of the dataset
 	// Convert numeric values to numbers.
 	// Make sure the regions array has the name of each region
+	data.sort(function(a,b) {
+		return b.Population - a.Population
+	});
+	data.forEach(function(d) {
+		d.LifeExpectancy = +d.LifeExpectancy;
+		d.Income = +d.Income;
+		d.Population = +d.Population;
 
+		if(!regions.includes(d.Region)) {
+			regions.push(d.Region);
+
+		}
+	});
+	console.log(data);
+	return data;
 }
 
 var createVisualization = function(data) {
 	// Step 2: Append a new SVG area with D3
 	// The ID of the target div container in the html file is #chart-area
 	// Use the margin convention with 50 px of bottom padding and 30 px of padding on other sides!
+	var margin = {top: 30, right: 40, bottom: 50, left: 81};
 
+	var width = 960 - margin.left - margin.right,
+		height = 500 - margin.top - margin.bottom;
+
+	var svg = d3.select("body").append("svg")
+		.attr("width", width + margin.left + margin.right)
+		.attr("height", height + margin.top + margin.bottom)
+		.append("g")
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+	var incomeScale = d3.scaleLinear()
+		.domain(d3.extent(data, function (d) {
+			return d.Income -1985;
+		}))
+		.range([0, width]);
+
+	var lifeExpectancyScale = d3.scaleLinear()
+		.domain(d3.extent(data, function (d) {
+			return d.LifeExpectancy - 1;
+		}))
+		.range( [height, 0]);
+
+	var PopulationScale = d3.scaleLinear()
+		.domain(d3.extent(data, function (d) {
+			return d.Population;
+		}))
+		.range( [4, 30]);
+	var RegionScale = d3.scaleLinear()
+		.domain( [0, regions.length])
+		.range(["pink","yellow"]);
+
+
+
+	console.log(incomeScale(5000));
+	console.log(lifeExpectancyScale(68));
+
+	svg.selectAll("circle")
+		.data(data)
+		.enter()
+		.append("circle")
+		.attr("cx", function(d) {
+		return incomeScale(d.Income);
+	})
+		.attr("cy", function(d) {
+			return lifeExpectancyScale(d.LifeExpectancy);
+
+		})
+		.attr("r", function(d) {
+			return PopulationScale(d.Population);
+		})
+		.attr("fill", function(d){
+			for (var i = 0; i < regions.length; i ++) {
+				if(d.Region === regions[i]) {
+					return RegionScale(i);
+				}
+
+			}
+
+		})
+		.attr("stroke", "#000");
 
 	// Step 3: Create linear scales by using the D3 scale functions
 	// You will need an income scale (x-axis) and a scale function for the life expectancy (y-axis).
@@ -38,9 +112,35 @@ var createVisualization = function(data) {
 	// Use d3.min() and d3.max() for the input domain
 	// Use the variables height and width for the output range
 
+	var xAxis = d3.axisBottom().scale(incomeScale).ticks(15);
+	var yAxis = d3.axisLeft().scale(lifeExpectancyScale).ticks(15);
+
 
 	// Step 4: Try the scale functions
 	// You can call the functions with example values and print the result to the web console.
+	svg.append("g")
+		.attr("class", "axis xAxis")
+		.attr("transform", "translate(0," + height + ")")
+		.call(xAxis);
+
+	svg.append("g")
+		.attr("class", "axis yAxis")
+		.call(yAxis);
+
+	svg.append("g")
+		.attr("class", "xlabel")
+		.attr("transform", "translate(" + width/2 + "," + 1.08*height + ")")
+		.append("text").text("Income");
+
+	svg.append("g")
+		.attr("class", "ylabel")
+		.attr("transform", "translate(-45," + .50*height + ")")
+		.append("text").text("Wealth")
+		.attr("transform", "rotate(270)")
+
+
+
+
 
 
 	// Step 5: Map the countries to SVG circles
